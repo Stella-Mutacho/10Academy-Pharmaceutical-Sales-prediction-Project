@@ -128,7 +128,7 @@ class CleanDataFrame:
         """
         This converts the date column into the day of the week
         """
-        df['day_of_week'] = pd.to_datetime(df['date']).dt.day_name().values
+        df['Day'] = pd.to_datetime(df['DayOfWeek']).dt.day_name().values
 
         return df
 
