@@ -26,5 +26,5 @@ jobs:
         run: |
           # Post reports as comments in GitHub PRs
           pip install -r requirements.txt
-          cat results.txt >> report.md
+          cat results.txt >> report.md 
           cml send-comment report.md
