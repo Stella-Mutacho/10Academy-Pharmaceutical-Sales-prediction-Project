@@ -1,0 +1,4 @@
+outs:
+- md5: b6d2637ae9bb0acf33a605b6cf449309
+  size: 3005997
+  path: test_open_stores.csv

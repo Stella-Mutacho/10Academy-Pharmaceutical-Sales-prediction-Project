@@ -1,0 +1,4 @@
+outs:
+- md5: 557512c1949aa73cb84f61c0f412a4bd
+  size: 74606548
+  path: train_open_stores.csv
