@@ -1,0 +1,4 @@
+outs:
+- md5: 0f4233c4596bc3c6d9b2846493738ef8
+  size: 14362859
+  path: train_closed_stores.csv

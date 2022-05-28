@@ -1,0 +1,4 @@
+outs:
+- md5: ab5f516f9c77b797a2ab9929faa5af24
+  size: 514551
+  path: test_closed_stores.csv
