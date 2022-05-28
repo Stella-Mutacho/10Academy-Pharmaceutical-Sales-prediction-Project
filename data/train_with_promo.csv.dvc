@@ -1,0 +1,4 @@
+outs:
+- md5: 99e30dac184bab0af10fddbb0c0c3276
+  size: 54687872
+  path: train_with_promo.csv

@@ -1,0 +1,4 @@
+outs:
+- md5: 4cd44fe0b68fe4568a578e5939fa5ea8
+  size: 2127206
+  path: test_with_promo.csv
