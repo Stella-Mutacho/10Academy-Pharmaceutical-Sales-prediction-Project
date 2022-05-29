@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, Normalizer
 
 
@@ -18,18 +19,12 @@ class CleanDataFrame:
 
     def fix_datatypes(self, df: pd.DataFrame, column: str = None, to_type: type = None) -> pd.DataFrame:
         """
-        Takes in the tellco dataframe an casts columns to proper data types.
-        Start and End -> from string to datetime.
-        Bearer Id, IMSI, MSISDN, IMEI -> From number to string
+        Takes in the dataframe and casts columns to proper data types.
+        Date-> from string to datetime.
+           -> From number to string
         """
-        datetime_columns = ['Start',
-                            'End', ]
-        string_columns = [
-            'IMSI',
-            'MSISDN/Number',
-            'IMEI',
-            'Bearer Id'
-        ]
+        datetime_columns = ['Date' ]
+        string_columns = []
         df_columns = df.columns
         for col in string_columns:
             if col in df_columns:
@@ -117,67 +112,122 @@ class CleanDataFrame:
 
     def drop_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        This checkes if there are any duplicated entries for a user
+        This checks if there are any duplicated entries for a user
         And remove the duplicated rows
         """
-        df = df.drop_duplicates(subset='auction_id')
+        df = df.drop_duplicates(subset='Id')
 
+        return df
+    
+    def fill_nulls_mode(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+         Function to fill categorical nulls with mode
+        """
+        col=['PromoInterval']
+        for column in col:
+            imp_median = SimpleImputer(missing_values=np.nan, strategy='most_frequent', fill_value=0)
+            imp_median = imp_median.fit(df[[column]])
+            df[column] = imp_median.transform(df[[column]]).ravel()
+        
+        return df
+    
+    def fill_nulls_zero(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Function to fill categorical nulls with 0
+        """
+        promo2since week and year are related to promo2, If the store had no promo thus having a null, we replace it with a zero.
+        A store is closed if not open
+        """
+        col=['Promo2SinceWeek','Promo2SinceYear','Open']
+        for column in col:
+            imp_median = SimpleImputer(missing_values=np.nan, strategy='constant', fill_value=0)
+            imp_median = imp_median.fit(df[[column]])
+            df[column] = imp_median.transform(df[[column]]).ravel()
+        
+        return df
+
+    
+    def fill_nulls_median(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Function to fill numerical nulls with median
+        """
+        col=['CompetitionDistance','CompetitionOpenSinceMonth','CompetitionOpenSinceYear']
+        for column in col:
+            imp_median = SimpleImputer(missing_values=np.nan, strategy='median', fill_value=0)
+            imp_median = imp_median.fit(df[[column]])
+            df[column] = imp_median.transform(df[[column]]).ravel()
+    
         return df
 
     def date_to_day(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        This converts the date column into the day of the week
+        This converts the date column into the Day
         """
-        df['day_of_week'] = pd.to_datetime(df['date']).dt.day_name().values
+        df['Day'] = pd.to_datetime(df['Date']).dt.day_name().values
 
         return df
-
-    def drop_unresponsive(self, df: pd.DataFrame) -> pd.DataFrame:
+    def date_to_month(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        This drops rows where users didn't repond to the questioneer.
-        Meaning, rows where both yes and no columns have 0
+        This converts the date column into Month
         """
-        df = df.query("yes==1 | no==1")
+        df['Month'] = df['Date'].apply(lambda x: int(str(x)[5:7]))
 
         return df
+    def date_to_year(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        This converts the date column into the Year
+        """
+        df['Year'] = df['Date'].apply(lambda x: int(str(x)[:4]))
 
+        return df
+    def is_it_holidays(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        This converts the date column into the Year
+        """
+        df['IsPublicHoliday'] = df['StateHoliday'].map(lambda x: 1 if x=='a' else 0)
+        df['IsEasterHoliday'] = df['StateHoliday'].map(lambda x: 1 if x=='b' else 0)
+        df['IsChristmasHoliday'] = df['StateHoliday'].map(lambda x: 1 if x=='c' else 0)
+
+        return df
+    def is_it_weekend(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        This converts the day column into the weekday or weekend
+        """
+        df['IsWeekend'] = df['Day'].map(lambda x: 1 if x=='Saturday' or x=='Sunday' else 0)
+        df['IsWeekday'] = df['Day'].map(lambda x: 1 if x!='Saturday' or x!='Sunday' else 0)
+
+        return df
+    def promoInterval_to_month (self, df: pd.DataFrame) -> pd.DataFrame:
+        df["PromoInterval"].loc[df["PromoInterval"] == "Jan,Apr,Jul,Oct"] = 1
+        df["PromoInterval"].loc[df["PromoInterval"] == "Feb,May,Aug,Nov"] = 2
+        df["PromoInterval"].loc[df["PromoInterval"] == "Mar,Jun,Sept,Dec"] = 3
+
+        new_promo_interval = []
+        for i in range(len(df)):
+            if df['PromoInterval'][i] == 'Jan,Apr,Jul,Oct':
+                new_promo_interval.append(1)
+            elif df['PromoInterval'][i] == 'Feb,May,Aug,Nov':
+                new_promo_interval.append(2)
+            elif df['PromoInterval'][i] == 'Mar,Jun,Sept,Dec':
+                new_promo_interval.append(3)
+            # else:
+            #     new_promo_interval.append(0)
+        
+        
+        df['PromoInterval'] = new_promo_interval
+        return df
+    
+    def month_level(self, df: pd.DataFrame) -> pd.DataFrame:
+        df['Date'] = pd.to_datetime(df['Date'])
+        df['month_level'] = df['Date'].map(lambda x:  'start month' if x.day < 11 else ('mid month' if x.day < 22 else 'end month'))
+        return df
+    
     def drop_columns(self, df: pd.DataFrame, columns: list = None) -> pd.DataFrame:
         """
         Drops columns that are not essesntial for modeling
         """
         if not columns:
-            columns = ['auction_id', 'date', 'yes', 'no', 'device_make']
+            columns = ['Date', 'StateHoliday']
         df.drop(columns=columns, inplace=True)
-
-        return df
-
-    def merge_response_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        This merges the one-hot-encoded target columns into
-        a single column named response, and drop the yes and no columns
-        """
-        df['response'] = [1] * df.shape[0]
-        df.loc[df['no'] == 1, 'response'] = 0
-
-        return df
-
-    def convert_to_brands(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        This converts the device model column in to 
-        `known` and `generic` brands. It then removes
-        the device_make column.
-        """
-        known_brands = ['samsung', 'htc', 'nokia',
-                        'moto', 'lg', 'oneplus',
-                        'iphone', 'xiaomi', 'huawei',
-                        'pixel']
-        makers = ["generic"]*df.shape[0]
-        for idx, make in enumerate(df['device_make'].values):
-            for brand in known_brands:
-                if brand in make.lower():
-                    makers[idx] = "known brand"
-                    break
-        df['brand'] = makers
 
         return df
 
@@ -185,12 +235,20 @@ class CleanDataFrame:
         """
         This runs a series of cleaner methods on the df passed to it. 
         """
-        df = self.drop_duplicates(df)
-        df = self.drop_unresponsive(df)
+        #df = self.drop_duplicates(df)
+        df = self.fill_nulls_median(df)
+        df = self.fill_nulls_mode(df)
+        df = self.fill_nulls_zero(df)
         df = self.date_to_day(df)
-        df = self.convert_to_brands(df)
-        df = self.merge_response_columns(df)
+        df = self.date_to_month(df)
+        df = self.date_to_year(df)
+        df = self.is_it_holidays(df)
+        df = self.is_it_weekend(df)
+        df = self.month_level(df)
+        df = self.minmax_scale(df)
+        df = self.normalize(df)
+        df = self.promoInterval_to_month(df)
         df = self.drop_columns(df)
-        df.reset_index(drop=True, inplace=True)
+        #df.reset_index(drop=True, inplace=True)
 
         return df
